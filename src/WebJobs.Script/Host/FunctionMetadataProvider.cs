@@ -62,20 +62,43 @@ namespace Microsoft.Azure.WebJobs.Script
                     return functions;
                 }
 
-                var functionDirectories = fileSystem.Directory.EnumerateDirectories(_applicationHostOptions.CurrentValue.ScriptPath).ToImmutableArray();
+                // read function directories
+                var functionDirectories = fileSystem
+                    .Directory
+                    .EnumerateDirectories(_applicationHostOptions.CurrentValue.ScriptPath)
+                    .Where(directory => directory != ScriptConstants.FunctionMetadataFolderName)
+                    .ToImmutableArray();
                 foreach (var functionDirectory in functionDirectories)
                 {
-                    var function = ReadFunctionMetadata(functionDirectory, fileSystem, workerConfigs);
+                    var function = ReadFunctionMetadata(functionDirectory, ScriptConstants.FunctionMetadataFileName, fileSystem, workerConfigs);
                     if (function != null)
                     {
                         functions.Add(function);
                     }
                 }
+
+                // read functions directory files
+                var functionsDirectory = $"{_applicationHostOptions.CurrentValue.ScriptPath}/{ScriptConstants.FunctionMetadataFolderName}";
+                var functionFiles = fileSystem
+                    .Directory
+                    .EnumerateFiles(functionsDirectory, "*.json")
+                    .Select(file => file.Substring(functionsDirectory.Length + 1))
+                    .Where(file => file != ScriptConstants.FunctionMetadataFileName)
+                    .ToImmutableArray();
+                foreach (var functionFile in functionFiles)
+                {
+                    var function = ReadFunctionMetadata(functionsDirectory, functionFile, fileSystem, workerConfigs);
+                    if (function != null)
+                    {
+                        functions.Add(function);
+                    }
+                }
+
                 return functions;
             }
         }
 
-        private FunctionMetadata ReadFunctionMetadata(string functionDirectory, IFileSystem fileSystem, IEnumerable<RpcWorkerConfig> workerConfigs)
+        private FunctionMetadata ReadFunctionMetadata(string functionDirectory, string functionFileName, IFileSystem fileSystem, IEnumerable<RpcWorkerConfig> workerConfigs)
         {
             using (_metricsLogger.LatencyEvent(string.Format(MetricEventNames.ReadFunctionMetadata, functionDirectory)))
             {
@@ -84,13 +107,22 @@ namespace Microsoft.Azure.WebJobs.Script
                 try
                 {
                     // read the function config
-                    if (!Utility.TryReadFunctionConfig(functionDirectory, out string json, fileSystem))
+                    if (!Utility.TryReadFunctionConfig(functionDirectory, functionFileName, out string json, fileSystem))
                     {
                         // not a function directory
                         return null;
                     }
 
-                    functionName = Path.GetFileName(functionDirectory);
+                    if (functionFileName == ScriptConstants.FunctionMetadataFileName)
+                    {
+                        // use the name of the directory as the functionName
+                        functionName = Path.GetFileName(functionDirectory);
+                    }
+                    else if (functionDirectory == ScriptConstants.FunctionMetadataFolderName)
+                    {
+                        // use the name of the file as the functionName
+                        functionName = Path.GetFileName(functionFileName);
+                    }
 
                     ValidateName(functionName);
 

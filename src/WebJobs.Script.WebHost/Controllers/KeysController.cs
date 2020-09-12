@@ -286,8 +286,12 @@ namespace Microsoft.Azure.WebJobs.Script.WebHost.Controllers
         private bool IsFunction(string functionName)
         {
             string json = null;
-            string functionPath = Path.Combine(_applicationOptions.Value.ScriptPath, functionName);
-            return Utility.TryReadFunctionConfig(functionPath, out json, _fileSystem);
+            string functionDirPath = Path.Combine(_applicationOptions.Value.ScriptPath, functionName);
+            string functionsDirPath = Path.Combine(_applicationOptions.Value.ScriptPath, ScriptConstants.FunctionMetadataFolderName);
+            return
+                Utility.TryReadFunctionConfig(functionDirPath, ScriptConstants.FunctionMetadataFileName, out json, _fileSystem)
+                || Utility.TryReadFunctionConfig(functionsDirPath, $"{functionName}.json", out json, _fileSystem)
+            ;
         }
     }
 }

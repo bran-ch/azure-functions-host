@@ -510,13 +510,13 @@ namespace Microsoft.Azure.WebJobs.Script
             functionErrorCollection.Add(error);
         }
 
-        internal static bool TryReadFunctionConfig(string scriptDir, out string json, IFileSystem fileSystem = null)
+        internal static bool TryReadFunctionConfig(string scriptDir, string fileName, out string json, IFileSystem fileSystem = null)
         {
             json = null;
             fileSystem = fileSystem ?? FileUtility.Instance;
 
             // read the function config
-            string functionConfigPath = Path.Combine(scriptDir, ScriptConstants.FunctionMetadataFileName);
+            string functionConfigPath = Path.Combine(scriptDir, fileName);
             try
             {
                 json = fileSystem.File.ReadAllText(functionConfigPath);
