@@ -118,7 +118,7 @@ namespace Microsoft.Azure.WebJobs.Script
                         // use the name of the directory as the functionName
                         functionName = Path.GetFileName(functionDirectory);
                     }
-                    else if (functionDirectory == ScriptConstants.FunctionMetadataFolderName)
+                    else if (Path.GetFileName(functionDirectory) == ScriptConstants.FunctionMetadataFolderName)
                     {
                         // use the name of the file as the functionName
                         functionName = Path.GetFileNameWithoutExtension(functionFileName);
